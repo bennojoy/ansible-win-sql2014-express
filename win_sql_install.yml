@@ -1,0 +1,48 @@
+- hosts: all
+  gather_facts: True
+  vars:
+   sql_instance_name: benz
+  tasks:
+   - debug: var=hostvars[inventory_hostname]
+   - name: create a directory for installer download
+     win_file: 
+        path: c:\sql
+        state: directory
+   
+   - name: create a directory for installer extraction
+     win_file: 
+        path: c:\sql\installer
+        state: directory
+
+   - name: create the configuration file
+     win_template: 
+       src: files/sql_conf.ini.j2
+       dest: c:\sql\sql_conf.ini
+
+   - name: a pre requisite of sql net-framework-35
+     win_feature:
+        name: NET-Framework-Core
+        state: present
+
+   - name: check downloaded file exists
+     win_stat:
+        path: c:\sql\sql_installer.exe
+     register: installer_file
+
+   - name: get the installer
+     win_get_url:
+          url: 'http://download.microsoft.com/download/E/A/E/EAE6F7FC-767A-4038-A954-49B8B05D04EB/ExpressAndTools%2064BIT/SQLEXPRWT_x64_ENU.exe'
+          dest: 'c:\sql\sql_installer.exe'
+     when: not installer_file.stat.exists
+   
+   - name: extract the installer
+     win_command: c:\sql\sql_installer.exe /q /x:c:\sql\installer
+     args:
+      chdir: c:\sql
+      creates: c:\sql\installer\setup.exe
+   
+   - name: Install the database
+     win_command: c:\sql\installer\setup.exe /configurationfile=c:\sql\sql_conf.ini
+     args:
+      chdir: c:\sql
+      
