@@ -46,3 +46,17 @@
      args:
       chdir: c:\sql
       
+   - name: Add or update registry for ip port
+     win_regedit:
+       path: 'HKLM:\Software\Microsoft\Microsoft SQL Server\MSSQL12.{{ sql_instance_name }}\MSSQLServer\SuperSocketNetLib\Tcp\IPAll'
+       name: TcpPort
+       data: 1433
+     register: win_reg
+
+   - name: Restart a service
+     win_service:
+       name: 'MSSQL${{ sql_instance_name }}'
+       force_dependent_services: yes
+       state: restarted
+     when: win_reg.changed
+      
